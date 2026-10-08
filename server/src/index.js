@@ -110,6 +110,7 @@ io.on('connection', socket => {
     join: p => game.join(playerId, p.name, p.role),
     setRounds: p => game.setRounds(playerId, Number(p.rounds)),
     start: () => game.start(playerId),
+    recording: p => game.setRecording(playerId, p.on),
     vote: p => game.vote(playerId, p.value),
     react: p => game.react(playerId, p.emoji),
     playAgain: () => game.playAgain(playerId),

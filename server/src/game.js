@@ -110,7 +110,7 @@ export class Game {
       character = 0;
       while (used.has(character)) character++;
     }
-    const p = { id, name, role, connected: true, character, scores: [], reactions: 0, clip: null, recording: null };
+    const p = { id, name, role, connected: true, character, scores: [], reactions: 0, clip: null, recording: null, recordingNow: false };
     this.players.push(p);
     return p;
   }
@@ -233,9 +233,17 @@ export class Game {
     for (const m of this.members()) {
       m.clip = m.connected ? this.roundClip : null;
       m.recording = null;
+      m.recordingNow = false;
     }
     this.later(this.config.recordSeconds, () => this.beginShow());
     this.changed();
+  }
+
+  setRecording(id, on) {
+    const p = this.player(id);
+    if (this.phase !== 'record' || !p || p.role !== 'member' || !p.clip || p.recording) return fail('Not recording right now');
+    p.recordingNow = Boolean(on);
+    return this.changed();
   }
 
   allSubmitted() {
@@ -250,6 +258,7 @@ export class Game {
     const max = this.config.maxRecordingSeconds;
     const d = Number(duration);
     p.recording = { url, duration: Math.min(max, Math.max(0.5, Number.isFinite(d) ? d : max)) };
+    p.recordingNow = false;
     if (this.allSubmitted()) {
       this.beginShow();
       return ok();
@@ -324,9 +333,10 @@ export class Game {
   react(id, emoji) {
     const p = this.player(id);
     if (!p || p.role !== 'audience') return fail('Only the audience can react');
-    if (this.phase !== 'show' || this.show.step !== 'vote') return fail('Reactions are closed');
+    if (!['record', 'show', 'leaderboard'].includes(this.phase)) return fail('Reactions are closed');
     if (!EMOJIS.includes(emoji)) return fail('Unknown reaction');
-    this.performer().reactions += 1;
+    // Only reactions aimed at someone at the mic count toward Crowd Favourite.
+    if (this.phase === 'show' && this.show.step !== 'original') this.performer().reactions += 1;
     this.onEvent('reaction', { emoji, from: p.name });
     return ok();
   }
@@ -406,6 +416,7 @@ export class Game {
         reactions: m.reactions,
         clip: m.clip,
         submitted: Boolean(m.recording),
+        recordingNow: m.recordingNow,
       })),
       audience: this.audience().filter(a => a.connected).map(a => ({ id: a.id, name: a.name })),
       show: s && p ? {

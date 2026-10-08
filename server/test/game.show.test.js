@@ -70,7 +70,6 @@ describe('stage show', () => {
     const onEvent = vi.fn();
     const g = started({ onEvent });
     submitAll(g);
-    expect(g.react('a', '🔥').ok).toBe(false);
     runUntil(g, x => step(x) === 'vote');
     expect(g.react('m', '🔥')).toEqual({ ok: false, error: 'Only the audience can react' });
     expect(g.react('a', '💩')).toEqual({ ok: false, error: 'Unknown reaction' });
