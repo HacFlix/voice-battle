@@ -15,8 +15,10 @@ import { stageModel } from './stage/stageModel.js';
 const SCREENS = { lobby: Lobby, record: Record, show: Show, leaderboard: Leaderboard, final: Final };
 
 function findMe(state) {
+  const isHost = state.actingHostId === playerId;
+  if (state.host?.id === playerId) return { ...state.host, role: 'host', isHost };
   const member = state.members.find(m => m.id === playerId);
-  if (member) return { ...member, role: 'member', isHost: state.hostId === playerId };
+  if (member) return { ...member, role: 'member', isHost };
   const fan = state.audience.find(a => a.id === playerId);
   return fan ? { ...fan, role: 'audience', isHost: false } : null;
 }
@@ -51,7 +53,7 @@ export default function App() {
         <Home
           mode={state.phase === 'lobby' ? 'join' : 'busy'}
           teamName={state.teamName}
-          hostName={state.members.find(m => m.id === state.hostId)?.name}
+          hostName={state.host?.name}
           teamCount={state.members.length}
           audienceCount={state.audience.length}
         />

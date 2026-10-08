@@ -26,7 +26,24 @@ export default function Record({ state, me, offset }) {
   const recordingNow = withClip.filter(m => m.recordingNow).map(m => m.name);
 
   let body;
-  if (me.role === 'audience') {
+  if (me.role === 'host') {
+    body = (
+      <>
+        <h2>🎛️ Your team is recording</h2>
+        <p className="clip-title">“{state.roundClip?.title}”</p>
+        <ul className="roster">
+          {withClip.map(m => (
+            <li key={m.id} className={m.connected ? '' : 'offline'}>
+              <span>{m.submitted ? '✅' : m.recordingNow ? '🎙️' : '💭'}</span>
+              <span>{m.name}</span>
+              <span className="muted small">{m.submitted ? 'submitted' : m.recordingNow ? 'recording…' : 'getting ready'}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="muted small">The show starts when everyone submits or the timer runs out.</p>
+      </>
+    );
+  } else if (me.role === 'audience') {
     body = (
       <>
         <h2>🎙️ Players are recording</h2>

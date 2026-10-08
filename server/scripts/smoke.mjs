@@ -29,13 +29,16 @@ async function upload(playerId) {
 
 const host = client('smoke-host');
 const mem = client('smoke-mem');
+const mem2 = client('smoke-mem2');
 const aud = client('smoke-aud');
-await until(() => host.state && mem.state && aud.state, 'initial state');
+await until(() => host.state && mem.state && mem2.state && aud.state, 'initial state');
 assert(host.state.phase === 'none', 'a game is already running — restart the server first');
 
 assert((await send(host, 'create', { name: "Host", teamName: "Smoke Squad" })).ok, "create team");
 assert(!(await send(mem, 'create', { name: 'Other' })).ok, 'second team must be rejected');
 assert((await send(mem, 'join', { name: 'Mia', role: 'member' })).ok, 'join member');
+assert((await send(mem2, 'join', { name: 'Neo', role: 'member' })).ok, 'join member 2');
+assert(!host.state.members.some(m => m.id === 'smoke-host'), 'host must not be on the team');
 assert((await send(aud, 'join', { name: 'Aud', role: 'audience' })).ok, 'join audience');
 let reactions = 0;
 aud.on('reaction', () => { reactions += 1; });
@@ -45,8 +48,9 @@ for (let round = 1; round <= 3; round++) {
   await until(() => host.state.phase === 'record' && host.state.round === round, `record r${round}`);
   const clipUrl = host.state.members[0].clip.url;
   assert((await fetch(`${BASE}${clipUrl}`)).ok, `clip served ${clipUrl}`);
-  assert((await upload('smoke-host')).ok, `upload host r${round}`);
+  assert(!(await upload('smoke-host')).ok, `host must not record r${round}`);
   assert((await upload('smoke-mem')).ok, `upload mem r${round}`);
+  assert((await upload('smoke-mem2')).ok, `upload mem2 r${round}`);
   for (let k = 0; k < 2; k++) {
     await until(() => aud.state.show?.step === 'vote' && aud.state.show.index === k, `vote r${round} p${k}`);
     assert((await send(aud, 'vote', { value: k === 0 ? 80 : 50 })).ok, 'vote');
@@ -60,8 +64,8 @@ await until(() => host.state.phase === 'final', 'final');
 const totals = Object.fromEntries(host.state.members.map(m => [m.name, m.total]));
 console.log('totals', totals);
 console.log('awards', JSON.stringify(host.state.awards));
-assert(totals.Host === 240 && totals.Mia === 150, 'totals should be Host 240 / Mia 150');
-assert(host.state.awards.closestMatch?.name === 'Host', 'closest match award');
+assert(totals.Mia === 240 && totals.Neo === 150, 'totals should be Mia 240 / Neo 150');
+assert(host.state.awards.closestMatch?.name === 'Mia', 'closest match award');
 assert(reactions === 6, `expected 6 reactions, got ${reactions}`);
 assert((await send(host, 'end')).ok, 'end');
 await until(() => host.state.phase === 'none', 'reset');

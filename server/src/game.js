@@ -87,8 +87,20 @@ export class Game {
     return this.members().filter(p => p.connected);
   }
 
+  // The host moderates. While they are away, the first connected teammate stands in.
+  actingHostId() {
+    const host = this.player(this.hostId);
+    if (host?.connected) return host.id;
+    return this.connectedMembers()[0]?.id ?? null;
+  }
+
   isHost(id) {
-    return id === this.hostId;
+    return id === this.actingHostId();
+  }
+
+  // Players the game cannot continue without: the host and the team.
+  anyoneRunningTheGame() {
+    return this.players.some(p => p.connected && p.role !== 'audience');
   }
 
   changed() {
@@ -132,7 +144,7 @@ export class Game {
     const name = cleanName(rawName);
     if (!name) return fail('Enter your name (1-20 characters)');
     this.teamName = cleanName(rawTeamName, 30) ?? `${name}'s Team`;
-    this.addPlayer(id, name, 'member');
+    this.addPlayer(id, name, 'host');
     this.hostId = id;
     this.phase = 'lobby';
     return this.changed();
@@ -173,12 +185,10 @@ export class Game {
     const p = this.player(id);
     if (!p || !p.connected) return;
     p.connected = false;
-    const remaining = this.connectedMembers();
-    if (remaining.length === 0) {
+    if (!this.anyoneRunningTheGame()) {
       this.reset();
       return;
     }
-    if (this.isHost(id)) this.hostId = remaining[0].id;
     if (this.phase === 'record' && this.allSubmitted()) {
       this.beginShow();
       return;
@@ -212,7 +222,7 @@ export class Game {
     if (this.phase !== 'lobby') return fail('Game already started');
     const problem = this.startProblem();
     if (problem) return fail(problem);
-    this.players = this.players.filter(p => p.connected);
+    this.players = this.players.filter(p => p.connected || p.id === this.hostId);
     for (const m of this.members()) {
       m.scores = [];
       m.reactions = 0;
@@ -362,7 +372,7 @@ export class Game {
 
   playAgain(id) {
     if (!this.isHost(id) || this.phase !== 'final') return fail('Only the host can restart after the final');
-    this.players = this.players.filter(p => p.connected);
+    this.players = this.players.filter(p => p.connected || p.id === this.hostId);
     for (const m of this.members()) {
       m.scores = [];
       m.reactions = 0;
@@ -389,10 +399,13 @@ export class Game {
     const s = this.show;
     const p = this.performer();
     const total = m => m.scores.reduce((a, b) => a + (b || 0), 0);
+    const host = this.player(this.hostId);
     return {
       phase: this.phase,
       teamName: this.teamName,
       hostId: this.hostId,
+      actingHostId: this.actingHostId(),
+      host: host ? { id: host.id, name: host.name, connected: host.connected } : null,
       rounds: this.rounds,
       round: this.round,
       roundClip: this.roundClip,

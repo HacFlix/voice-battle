@@ -7,10 +7,12 @@ export const CLIPS = [
   { id: 'c3', title: 'Clip 3', url: '/clips/c3.mp3', duration: 4 },
 ];
 
+// Host "h" moderates; "m" (Mia) and "n" (Neo) are the team; "a" is the audience.
 export function lobby(options = {}) {
   const g = new Game({ clips: CLIPS, ...options });
   g.createTeam('h', 'Host');
   g.join('m', 'Mia', 'member');
+  g.join('n', 'Neo', 'member');
   g.join('a', 'Aud', 'audience');
   return g;
 }

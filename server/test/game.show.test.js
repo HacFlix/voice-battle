@@ -19,7 +19,7 @@ describe('stage show', () => {
       vi.advanceTimersByTime(100);
     }
     const steps = ['walkIn', 'perform', 'vote', 'reveal', 'walkOut'];
-    expect(seen).toEqual(['h:original', ...steps.map(s => `h:${s}`), ...steps.map(s => `m:${s}`)]);
+    expect(seen).toEqual(['m:original', ...steps.map(s => `m:${s}`), ...steps.map(s => `n:${s}`)]);
     expect(g.phase).toBe('leaderboard');
   });
 
@@ -36,7 +36,8 @@ describe('stage show', () => {
     submitAll(g);
     expect(g.vote('a', 50)).toEqual({ ok: false, error: 'Voting is closed' });
     runUntil(g, x => step(x) === 'vote');
-    expect(g.vote('m', 50)).toEqual({ ok: false, error: 'Only the audience can vote' });
+    expect(g.vote('n', 50)).toEqual({ ok: false, error: 'Only the audience can vote' });
+    expect(g.vote('h', 50)).toEqual({ ok: false, error: 'Only the audience can vote' });
     expect(g.vote('a', 101).ok).toBe(false);
     expect(g.vote('a', -1).ok).toBe(false);
     expect(g.vote('a', '80').ok).toBe(false);
@@ -56,7 +57,7 @@ describe('stage show', () => {
     g.vote('b', 71);
     runUntil(g, x => step(x) === 'reveal');
     expect(g.publicState().show.score).toBe(76);
-    expect(g.player('h').scores).toEqual([76]);
+    expect(g.player('m').scores).toEqual([76]);
   });
 
   it('scores 0 when nobody votes', () => {
@@ -71,29 +72,31 @@ describe('stage show', () => {
     const g = started({ onEvent });
     submitAll(g);
     runUntil(g, x => step(x) === 'vote');
-    expect(g.react('m', '🔥')).toEqual({ ok: false, error: 'Only the audience can react' });
+    expect(g.react('n', '🔥')).toEqual({ ok: false, error: 'Only the audience can react' });
+    expect(g.react('h', '🔥')).toEqual({ ok: false, error: 'Only the audience can react' });
     expect(g.react('a', '💩')).toEqual({ ok: false, error: 'Unknown reaction' });
     expect(g.react('a', '🔥')).toEqual({ ok: true });
     expect(onEvent).toHaveBeenCalledWith('reaction', { emoji: '🔥', from: 'Aud' });
-    expect(g.player('h').reactions).toBe(1);
+    expect(g.player('m').reactions).toBe(1);
   });
 
   it('skips a performer who disconnected', () => {
     const g = started();
     submitAll(g);
-    g.disconnect('m');
+    g.disconnect('n');
     const performers = new Set();
     for (let i = 0; i < 3000 && g.phase === 'show'; i++) {
       performers.add(g.publicState().show.performerId);
       vi.advanceTimersByTime(100);
     }
-    expect([...performers]).toEqual(['h']);
+    expect([...performers]).toEqual(['m']);
   });
 
   it('applies the time scale to every timer', () => {
     const g = new Game({ clips: CLIPS, config: { timeScale: 0.01 } });
     g.createTeam('h', 'Host');
     g.join('m', 'Mia', 'member');
+    g.join('n', 'Neo', 'member');
     g.join('a', 'Aud', 'audience');
     g.start('h');
     expect(g.deadline - Date.now()).toBe(600);

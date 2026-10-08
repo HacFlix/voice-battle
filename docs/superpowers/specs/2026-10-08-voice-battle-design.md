@@ -16,15 +16,16 @@ the same stage moment.
 
 ## Roles
 
-- **Host** — the team member who created the team. Picks round count, uploads
-  extra clips, starts the game, can Play Again / End.
+- **Host** — whoever created the team. A moderator, not a player: never
+  records, performs or votes. Picks round count, uploads extra clips, starts
+  the game, can Play Again / End.
 - **Team member** — records imitations, performs on stage. Never votes.
 - **Audience** — watches and votes. Only the audience votes.
 
 ## Rules
 
 - Only one game exists at a time. While a team exists, nobody can create another.
-- Team: 2–6 members (host included). Audience: at least 1, unlimited.
+- Team: 2–6 members (host not included). Audience: at least 1, unlimited.
 - Rounds: 3 or 4 (host chooses). All rounds use the same rules.
 - Each round uses one clip shared by every member (each does their own take on it);
   no clip repeats until the pack runs out.
@@ -61,10 +62,11 @@ the same stage moment.
 
 - Member disconnects → skipped on stage, keeps earned points. Can rejoin with
   the same name while the game exists.
-- Host disconnects → next member becomes host.
+- Host disconnects → the game carries on; the first connected teammate stands
+  in on the host controls until the host rejoins (same name).
 - A dropped connection gets a 5 s grace period (page refresh) before the player
   counts as disconnected.
-- If no team members remain connected, the game is closed.
+- If the host and every teammate have left, the game is closed.
 
 ## Architecture
 

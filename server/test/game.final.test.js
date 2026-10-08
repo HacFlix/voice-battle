@@ -16,21 +16,28 @@ describe('rounds and final', () => {
   it('ends with totals and awards after the last round', () => {
     const g = started();
     for (let r = 0; r < 3; r++) {
-      playRound(g, id => (id === 'h' ? 90 : 40));
+      playRound(g, id => (id === 'm' ? 90 : 40));
       vi.advanceTimersByTime(6000);
     }
     const s = g.publicState();
     expect(s.phase).toBe('final');
     expect(s.members.map(m => m.total)).toEqual([270, 120]);
-    expect(s.awards.closestMatch).toEqual({ playerId: 'h', name: 'Host', value: 90 });
+    expect(s.awards.closestMatch).toEqual({ playerId: 'm', name: 'Mia', value: 90 });
   });
 
   it('lets a member rejoin by name mid-game and keep their scores', () => {
     const g = started();
     playRound(g);
-    g.disconnect('m');
-    expect(g.join('new', 'mia', 'member')).toEqual({ ok: true });
-    expect(g.player('new')).toMatchObject({ name: 'Mia', connected: true, scores: [70] });
+    g.disconnect('n');
+    expect(g.join('new', 'neo', 'member')).toEqual({ ok: true });
+    expect(g.player('new')).toMatchObject({ name: 'Neo', connected: true, scores: [70] });
+  });
+
+  it('lets the host rejoin by name mid-game', () => {
+    const g = started();
+    g.disconnect('h');
+    expect(g.join('h2', 'host', 'member')).toEqual({ ok: true });
+    expect(g.publicState()).toMatchObject({ hostId: 'h2', actingHostId: 'h2' });
   });
 
   it('rejects new people once the game started', () => {
@@ -49,6 +56,7 @@ describe('rounds and final', () => {
     expect(g.playAgain('h')).toEqual({ ok: true });
     const s = g.publicState();
     expect(s.phase).toBe('lobby');
+    expect(s.host.id).toBe('h');
     expect(s.members.every(m => m.total === 0)).toBe(true);
     expect(onEvent).toHaveBeenCalledWith('clearRecordings');
   });

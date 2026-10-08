@@ -11,7 +11,7 @@ export default function Header({ state, me }) {
       <button className="pill sound" onClick={() => setSoundOn(!soundOn)} title="Several devices in one room? Keep sound on for just one of them.">
         {soundOn ? '🔊 Sound on' : '🔇 Muted'}
       </button>
-      {me && <span className="pill me">{me.name} · {me.isHost ? 'Host' : me.role === 'member' ? 'Team' : 'Audience'}</span>}
+      {me && <span className="pill me">{me.name} · {me.role === 'host' ? 'Host' : me.role === 'member' ? (me.isHost ? 'Team · standing in as host' : 'Team') : 'Audience'}</span>}
     </header>
   );
 }

@@ -10,23 +10,24 @@ const live = (g, id) => g.publicState().members.find(m => m.id === id).recording
 describe('live recording status', () => {
   it('shows who is recording right now', () => {
     const g = started();
-    expect(g.setRecording('h', true)).toEqual({ ok: true });
-    expect(live(g, 'h')).toBe(true);
-    expect(g.setRecording('h', false)).toEqual({ ok: true });
-    expect(live(g, 'h')).toBe(false);
+    expect(g.setRecording('m', true)).toEqual({ ok: true });
+    expect(live(g, 'm')).toBe(true);
+    expect(g.setRecording('m', false)).toEqual({ ok: true });
+    expect(live(g, 'm')).toBe(false);
   });
 
   it('clears the flag on submit', () => {
     const g = started();
-    g.setRecording('h', true);
-    g.submitRecording('h', { url: '/u/h.webm', duration: 2 });
-    expect(live(g, 'h')).toBe(false);
+    g.setRecording('m', true);
+    g.submitRecording('m', { url: '/u/m.webm', duration: 2 });
+    expect(live(g, 'm')).toBe(false);
   });
 
   it('only applies to members during the recording phase', () => {
     const g = lobby();
-    expect(g.setRecording('h', true).ok).toBe(false);
+    expect(g.setRecording('m', true).ok).toBe(false);
     g.start('h');
+    expect(g.setRecording('h', true).ok).toBe(false);
     expect(g.setRecording('a', true).ok).toBe(false);
   });
 });
@@ -45,7 +46,7 @@ describe('reactions outside voting', () => {
     submitAll(g);
     runUntil(g, x => step(x) === 'perform');
     g.react('a', '🔥');
-    expect(g.player('h').reactions).toBe(1);
+    expect(g.player('m').reactions).toBe(1);
   });
 
   it('does not credit anyone while the original plays', () => {
@@ -53,7 +54,7 @@ describe('reactions outside voting', () => {
     submitAll(g);
     expect(step(g)).toBe('original');
     expect(g.react('a', '🔥').ok).toBe(true);
-    expect(g.player('h').reactions).toBe(0);
+    expect(g.player('m').reactions).toBe(0);
   });
 
   it('keeps reactions closed in the lobby', () => {

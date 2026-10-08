@@ -12,8 +12,14 @@ describe('lobby', () => {
     const s = g.publicState();
     expect(s.phase).toBe('lobby');
     expect(s.hostId).toBe('h');
-    expect(s.members.map(m => m.name)).toEqual(['Host']);
+    expect(s.host).toEqual({ id: 'h', name: 'Host', connected: true });
     expect(g.createTeam('x', 'Other')).toEqual({ ok: false, error: 'A game already exists' });
+  });
+
+  it('keeps the host off the team', () => {
+    const s = lobby().publicState();
+    expect(s.members.map(m => m.name)).toEqual(['Mia', 'Neo']);
+    expect(s.audience.map(a => a.name)).toEqual(['Aud']);
   });
 
   it('rejects joining before a team exists', () => {
@@ -21,21 +27,16 @@ describe('lobby', () => {
     expect(g.join('x', 'Ann', 'audience')).toEqual({ ok: false, error: 'No team has been created yet' });
   });
 
-  it('lets people join as team member or audience', () => {
-    const s = lobby().publicState();
-    expect(s.members.map(m => m.name)).toEqual(['Host', 'Mia']);
-    expect(s.audience.map(a => a.name)).toEqual(['Aud']);
-  });
-
   it('validates names and roles', () => {
     const g = lobby();
     expect(g.join('x', '   ', 'member').ok).toBe(false);
     expect(g.join('x', 'a'.repeat(21), 'member').ok).toBe(false);
     expect(g.join('x', 'mia', 'audience').ok).toBe(false);
+    expect(g.join('x', 'host', 'member').ok).toBe(false);
     expect(g.join('x', 'Zed', 'judge')).toEqual({ ok: false, error: 'Choose team member or audience' });
   });
 
-  it('caps the team at 6 members but not the audience', () => {
+  it('caps the team at 6 members, not counting the host', () => {
     const g = lobby();
     for (let i = 0; i < 4; i++) expect(g.join(`m${i}`, `P${i}`, 'member').ok).toBe(true);
     expect(g.join('m9', 'P9', 'member')).toEqual({ ok: false, error: 'Team is full' });
@@ -65,11 +66,13 @@ describe('lobby', () => {
     expect(g.publicState().clipCount).toBe(4);
   });
 
-  it('explains why the game cannot start yet', () => {
+  it('needs two teammates besides the host, plus an audience', () => {
     const g = new Game({ clips: CLIPS });
     g.createTeam('h', 'Host');
     expect(g.publicState().startProblem).toBe('Need at least 2 team members');
     g.join('m', 'Mia', 'member');
+    expect(g.publicState().startProblem).toBe('Need at least 2 team members');
+    g.join('n', 'Neo', 'member');
     expect(g.publicState().startProblem).toBe('Need at least 1 audience member');
     expect(g.start('h')).toEqual({ ok: false, error: 'Need at least 1 audience member' });
     g.join('a', 'Aud', 'audience');
@@ -85,17 +88,31 @@ describe('lobby', () => {
     expect(g.player('m').connected).toBe(true);
   });
 
-  it('hands the host role to the next connected member', () => {
+  it('lets the first teammate stand in while the host is away', () => {
     const g = lobby();
     g.disconnect('h');
-    expect(g.publicState().hostId).toBe('m');
+    expect(g.publicState()).toMatchObject({ hostId: 'h', actingHostId: 'm' });
+    expect(g.setRounds('m', 4).ok).toBe(true);
+    g.reconnect('h');
+    expect(g.publicState().actingHostId).toBe('h');
+    expect(g.setRounds('m', 3).ok).toBe(false);
   });
 
-  it('closes the game when no team members remain connected', () => {
+  it('stays open while only the host is waiting in the lobby', () => {
+    const g = new Game({ clips: CLIPS });
+    g.createTeam('h', 'Host');
+    g.join('m', 'Mia', 'member');
+    g.disconnect('m');
+    expect(g.publicState().phase).toBe('lobby');
+  });
+
+  it('closes the game when the host and every teammate have left', () => {
     const onEvent = vi.fn();
     const g = lobby({ onEvent });
     g.disconnect('h');
     g.disconnect('m');
+    expect(g.publicState().phase).toBe('lobby');
+    g.disconnect('n');
     expect(g.publicState().phase).toBe('none');
     expect(onEvent).toHaveBeenCalledWith('reset');
   });

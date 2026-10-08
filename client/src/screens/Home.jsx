@@ -35,7 +35,7 @@ export default function Home({ mode, teamName, hostName, teamCount = 0, audience
       {mode === 'join' && (
         <>
           <p className="join-title"><b>{teamName}</b> is getting ready</p>
-          <p className="muted join-meta">Host: {hostName} · {teamCount} on the team (host included) · {audienceCount} in the audience</p>
+          <p className="muted join-meta">Hosted by {hostName} · {teamCount} teammate{teamCount === 1 ? '' : 's'} · {audienceCount} in the audience</p>
           <p className="muted join-meta">Each browser tab is a separate player. This tab hasn't joined yet.</p>
           <label className="field">Your name
             <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Priya" maxLength={20} autoFocus />

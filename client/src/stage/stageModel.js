@@ -15,9 +15,6 @@ export function stageModel(state) {
   if (!state) return base;
 
   switch (state.phase) {
-    case 'lobby':
-      return { ...base, badges: state.hostId ? { [state.hostId]: '👑' } : {} };
-
     case 'record':
       return {
         ...base,

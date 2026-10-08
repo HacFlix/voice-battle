@@ -12,14 +12,16 @@ export default function Lobby({ state, me }) {
 
   return (
     <aside className="panel side">
+      <p className="host-line">🎙️ Hosted by <b>{state.host?.name}</b>{state.host && !state.host.connected && <span className="muted"> (away)</span>}</p>
+      {me.role === 'host' && <p className="muted small">You run the show — you don't perform or vote.</p>}
       <section>
         <h2>The Team <small>{state.members.length}/{state.config.maxMembers}</small></h2>
+        {state.members.length === 0 && <p className="muted">No teammates yet. Share this page's link.</p>}
         <ul className="roster">
           {state.members.map(m => (
             <li key={m.id} className={m.connected ? '' : 'offline'}>
               <Avatar character={m.character} size={44} />
               <span>{m.name}</span>
-              {m.id === state.hostId && <span className="tag">HOST</span>}
               {m.id === me.id && <span className="tag you">YOU</span>}
             </li>
           ))}
@@ -33,6 +35,7 @@ export default function Lobby({ state, me }) {
           : <div className="chips">{state.audience.map(a => <span className="chip" key={a.id}>{a.name}</span>)}</div>}
       </section>
 
+      {me.isHost && me.role !== 'host' && <p className="notice">The host stepped away — you're standing in until they're back.</p>}
       {me.isHost
         ? <HostControls state={state} run={run} setError={setError} />
         : <p className="muted">Waiting for the host to start… {state.rounds} rounds · {state.clipCount} clips</p>}
