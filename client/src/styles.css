@@ -45,6 +45,8 @@ input[type=file] { padding: 8px; }
 .pill.me { color: var(--cyan); }
 .pill.team { color: var(--yellow); }
 button.pill { color: var(--text); font-family: inherit; cursor: pointer; }
+.pill.end-game { background: #3b0d22; border-color: var(--red); color: #ffd6d6; }
+.pill.end-game:hover { background: var(--red); color: #fff; }
 
 .panel {
   position: absolute; z-index: 30; overflow-y: auto; overscroll-behavior: contain;
