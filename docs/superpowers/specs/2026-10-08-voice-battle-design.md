@@ -61,7 +61,9 @@ the same stage moment.
 - Member disconnects → skipped on stage, keeps earned points. Can rejoin with
   the same name while the game exists.
 - Host disconnects → next member becomes host.
-- If everyone leaves, the game is closed.
+- A dropped connection gets a 5 s grace period (page refresh) before the player
+  counts as disconnected.
+- If no team members remain connected, the game is closed.
 
 ## Architecture
 
@@ -69,8 +71,8 @@ the same stage moment.
 client (React + Vite)                      server (Node + Express + Socket.IO)
  ├─ screens: Home, Lobby, Record,          ├─ game state machine (single game)
  │  Show, Leaderboard, Final               ├─ timers (record, vote, stage steps)
- ├─ Stage component (2D: PixiJS;           ├─ REST: upload recording / clip
- │  later 3D: react-three-fiber)           └─ static: clip pack, uploads
+ ├─ Stage component (2D: DOM + CSS        ├─ REST: upload recording / clip
+ │  sprites; later 3D: react-three-fiber)  └─ static: clip pack, uploads
  └─ socket client ← "state" broadcasts
 ```
 
