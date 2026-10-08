@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { API_URL } from './apiBase.js';
 
 function tabPlayerId() {
   let id = sessionStorage.getItem('vb-player');
@@ -10,7 +11,7 @@ function tabPlayerId() {
 }
 
 export const playerId = tabPlayerId();
-export const socket = io({ auth: { playerId } });
+export const socket = io(API_URL || undefined, { auth: { playerId } });
 
 export function send(event, payload = {}) {
   return new Promise(resolve => socket.emit(event, payload, resolve));

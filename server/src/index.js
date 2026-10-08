@@ -16,6 +16,10 @@ const CUSTOM_DIR = path.join(UPLOADS_DIR, 'clips');
 const CLIENT_DIST = path.resolve(ROOT, '..', 'client', 'dist');
 const PORT = Number(process.env.PORT || 3001);
 const RECONNECT_GRACE_MS = 5000;
+// Comma-separated list of site origins allowed to talk to this server (e.g. the Vercel URL).
+// Unset means allow any origin, which is fine for local dev.
+const ALLOWED_ORIGINS = (process.env.CLIENT_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
+const originAllowed = origin => !origin || ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin);
 const MAX_CUSTOM_CLIP_SECONDS = 15;
 
 function emptyDir(dir) {
@@ -29,8 +33,22 @@ const clips = JSON.parse(fs.readFileSync(path.join(CLIPS_DIR, 'clips.json'), 'ut
   .map(c => ({ id: c.id, title: c.title, url: `/clips/${c.file}`, duration: c.duration }));
 
 const app = express();
+app.use((req, res, next) => {
+  const { origin } = req.headers;
+  if (origin && originAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+app.get('/health', (_req, res) => res.json({ ok: true }));
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: { origin: (origin, cb) => cb(null, originAllowed(origin)) },
+});
 
 const game = new Game({
   clips,

@@ -10,9 +10,21 @@ Online party game: team members imitate meme clips, characters perform them on s
 Open http://localhost:5173 in several tabs (each tab is its own player): one creates the team,
 the others join as teammates or audience.
 
-Microphone recording needs https or localhost. To play with friends over the internet, deploy
-(`npm run build && npm start` serves the built client from the server on `$PORT`) behind https,
-e.g. Render or Railway.
+Microphone recording needs https or localhost.
+
+## Deploy (site on Vercel, game server on Render)
+
+The game server keeps live socket connections, timers and in-memory state, so it can't run as
+Vercel serverless functions; it runs on Render instead.
+
+1. **Server → Render:** New → Blueprint → pick this repo (uses `render.yaml`). Set `CLIENT_ORIGIN`
+   to the Vercel site URL once you have it. Health check: `/health`.
+   The free plan sleeps after ~15 min idle; the first visit then takes ~30-60 s to wake it.
+2. **Site → Vercel:** import the repo, Root Directory `client`, framework Vite, and set
+   `VITE_API_URL` to the Render URL (e.g. `https://voice-battle-api.onrender.com`).
+3. Redeploy Render after setting `CLIENT_ORIGIN` so the server accepts the site.
+
+Recordings live on the server's disk only for the current game (Render's disk is temporary).
 
 ## Tests
 
