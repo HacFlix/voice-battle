@@ -21,9 +21,9 @@ export const STEPS = ['original', 'walkIn', 'perform', 'vote', 'reveal', 'walkOu
 const ok = () => ({ ok: true });
 const fail = error => ({ ok: false, error });
 
-function cleanName(raw) {
+function cleanName(raw, max = 20) {
   const name = String(raw ?? '').trim().replace(/\s+/g, ' ');
-  return name.length >= 1 && name.length <= 20 ? name : null;
+  return name.length >= 1 && name.length <= max ? name : null;
 }
 
 function shuffle(list, rng) {
@@ -50,6 +50,7 @@ export class Game {
     clearTimeout(this.timer);
     this.timer = null;
     this.phase = 'none';
+    this.teamName = null;
     this.players = [];
     this.hostId = null;
     this.rounds = 3;
@@ -124,10 +125,11 @@ export class Game {
     p.id = newId;
   }
 
-  createTeam(id, rawName) {
+  createTeam(id, rawName, rawTeamName) {
     if (this.phase !== 'none') return fail('A game already exists');
     const name = cleanName(rawName);
-    if (!name) return fail('Enter a name (1-20 characters)');
+    if (!name) return fail('Enter your name (1-20 characters)');
+    this.teamName = cleanName(rawTeamName, 30) ?? `${name}'s Team`;
     this.addPlayer(id, name, 'member');
     this.hostId = id;
     this.phase = 'lobby';
@@ -145,7 +147,7 @@ export class Game {
     if (!name) return fail('Enter a name (1-20 characters)');
     const same = this.players.find(p => p.name.toLowerCase() === name.toLowerCase());
     if (same) {
-      if (same.connected) return fail('That name is taken');
+      if (same.connected) return fail(`Someone in this game is already called "${same.name}" — pick another name`);
       this.rekey(same, id);
       same.connected = true;
       return this.changed();
@@ -375,6 +377,7 @@ export class Game {
     const total = m => m.scores.reduce((a, b) => a + (b || 0), 0);
     return {
       phase: this.phase,
+      teamName: this.teamName,
       hostId: this.hostId,
       rounds: this.rounds,
       round: this.round,

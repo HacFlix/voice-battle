@@ -31,7 +31,7 @@ describe('lobby', () => {
     const g = lobby();
     expect(g.join('x', '   ', 'member').ok).toBe(false);
     expect(g.join('x', 'a'.repeat(21), 'member').ok).toBe(false);
-    expect(g.join('x', 'mia', 'audience')).toEqual({ ok: false, error: 'That name is taken' });
+    expect(g.join('x', 'mia', 'audience').ok).toBe(false);
     expect(g.join('x', 'Zed', 'judge')).toEqual({ ok: false, error: 'Choose team member or audience' });
   });
 
@@ -98,5 +98,31 @@ describe('lobby', () => {
     g.disconnect('m');
     expect(g.publicState().phase).toBe('none');
     expect(onEvent).toHaveBeenCalledWith('reset');
+  });
+});
+
+describe('team name', () => {
+  it('stores the team name given by the creator', () => {
+    const g = new Game({ clips: CLIPS });
+    expect(g.createTeam('h', 'Host', '  The   Mimics ')).toEqual({ ok: true });
+    expect(g.publicState().teamName).toBe('The Mimics');
+  });
+
+  it("falls back to the host's team when no team name is given", () => {
+    const g = new Game({ clips: CLIPS });
+    g.createTeam('h', 'Host');
+    expect(g.publicState().teamName).toBe("Host's Team");
+  });
+
+  it('explains a clashing player name', () => {
+    const g = lobby();
+    expect(g.join('x', 'Mia', 'member')).toEqual({ ok: false, error: 'Someone in this game is already called "Mia" — pick another name' });
+  });
+
+  it('clears the team name when the game ends', () => {
+    const g = new Game({ clips: CLIPS });
+    g.createTeam('h', 'Host', 'Mimics');
+    g.end('h');
+    expect(g.publicState().teamName).toBeNull();
   });
 });

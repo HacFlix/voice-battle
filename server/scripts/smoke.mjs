@@ -33,7 +33,7 @@ const aud = client('smoke-aud');
 await until(() => host.state && mem.state && aud.state, 'initial state');
 assert(host.state.phase === 'none', 'a game is already running — restart the server first');
 
-assert((await send(host, 'create', { name: 'Host' })).ok, 'create team');
+assert((await send(host, 'create', { name: "Host", teamName: "Smoke Squad" })).ok, "create team");
 assert(!(await send(mem, 'create', { name: 'Other' })).ok, 'second team must be rejected');
 assert((await send(mem, 'join', { name: 'Mia', role: 'member' })).ok, 'join member');
 assert((await send(aud, 'join', { name: 'Aud', role: 'audience' })).ok, 'join audience');

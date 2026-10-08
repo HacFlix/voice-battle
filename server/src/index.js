@@ -106,7 +106,7 @@ io.on('connection', socket => {
   socket.emit('state', game.publicState());
 
   const actions = {
-    create: p => game.createTeam(playerId, p.name),
+    create: p => game.createTeam(playerId, p.name, p.teamName),
     join: p => game.join(playerId, p.name, p.role),
     setRounds: p => game.setRounds(playerId, Number(p.rounds)),
     start: () => game.start(playerId),
