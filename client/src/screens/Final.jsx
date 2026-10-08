@@ -1,8 +1,8 @@
 import confetti from 'canvas-confetti';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Avatar from '../components/Avatar.jsx';
 import { sfx } from '../lib/audio.js';
-import { send } from '../lib/socket.js';
+import { useSecondsLeft } from '../lib/time.js';
 
 const AWARDS = [
   ['crowdFavourite', '💖 Crowd Favourite', v => `${v} reaction${v === 1 ? '' : 's'}`],
@@ -11,8 +11,8 @@ const AWARDS = [
 ];
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export default function Final({ state, me }) {
-  const [error, setError] = useState('');
+export default function Final({ state, offset }) {
+  const left = useSecondsLeft(state.deadline, offset);
   const ranked = [...state.members].sort((a, b) => b.total - a.total);
 
   useEffect(() => {
@@ -24,11 +24,6 @@ export default function Final({ state, me }) {
     }, 250);
     return () => clearInterval(t);
   }, []);
-
-  const run = async event => {
-    const result = await send(event);
-    setError(result.ok ? '' : result.error);
-  };
 
   return (
     <aside className="panel side final">
@@ -55,10 +50,7 @@ export default function Final({ state, me }) {
           );
         })}
       </div>
-      {me.isHost
-        ? <div className="row"><button className="btn primary" onClick={() => run('playAgain')}>Play Again</button><button className="btn" onClick={() => run('end')}>End Game</button></div>
-        : <p className="muted">Waiting for the host…</p>}
-      {error && <p className="error">{error}</p>}
+      <p className="muted">Back to the lobby for another game in {left}s…</p>
     </aside>
   );
 }

@@ -11,6 +11,7 @@ export const DEFAULT_CONFIG = {
   walkSeconds: 1.5,
   revealSeconds: 3,
   leaderboardSeconds: 6,
+  finalSeconds: 20,
   padSeconds: 0.5,
   timeScale: 1,
 };
@@ -362,16 +363,16 @@ export class Game {
   }
 
   finish() {
-    clearTimeout(this.timer);
-    this.timer = null;
-    this.deadline = null;
     this.phase = 'final';
     this.awards = computeAwards(this.members());
+    this.later(this.config.finalSeconds, () => this.backToLobby());
     this.changed();
   }
 
-  playAgain(id) {
-    if (!this.isHost(id) || this.phase !== 'final') return fail('Only the host can restart after the final');
+  // After the final scorecard the same people go back to the lobby for another game.
+  backToLobby() {
+    clearTimeout(this.timer);
+    this.timer = null;
     this.players = this.players.filter(p => p.connected || p.id === this.hostId);
     for (const m of this.members()) {
       m.scores = [];
@@ -385,7 +386,7 @@ export class Game {
     this.deadline = null;
     this.phase = 'lobby';
     this.onEvent('clearRecordings');
-    return this.changed();
+    this.changed();
   }
 
   end(id) {

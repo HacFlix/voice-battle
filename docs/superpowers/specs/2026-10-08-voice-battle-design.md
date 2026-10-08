@@ -18,7 +18,7 @@ the same stage moment.
 
 - **Host** — whoever created the team. A moderator, not a player: never
   records, performs or votes. Picks round count, uploads extra clips, starts
-  the game, can Play Again / End.
+  the game, and can end the game at any time from the top bar.
 - **Team member** — records imitations, performs on stage. Never votes.
 - **Audience** — watches and votes. Only the audience votes.
 
@@ -56,7 +56,8 @@ the same stage moment.
 6. **Final scorecard** — podium + confetti, totals and per-round scores.
    Awards: Crowd Favourite (most reactions received), Closest Match (highest
    single round score), Consistent Performer (smallest spread between round
-   scores). Host: Play Again (back to lobby, same people) or End (game closed).
+   scores). After 20 s everyone returns to the lobby automatically (same people,
+   fresh scores). The host can end the game at any time from the top bar.
 
 ### Disconnects
 

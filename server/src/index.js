@@ -131,7 +131,6 @@ io.on('connection', socket => {
     recording: p => game.setRecording(playerId, p.on),
     vote: p => game.vote(playerId, p.value),
     react: p => game.react(playerId, p.emoji),
-    playAgain: () => game.playAgain(playerId),
     end: () => game.end(playerId),
   };
   for (const [event, action] of Object.entries(actions)) {

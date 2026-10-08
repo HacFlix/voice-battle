@@ -45,15 +45,16 @@ describe('rounds and final', () => {
     expect(g.join('z', 'Zed', 'audience')).toEqual({ ok: false, error: 'Game already started' });
   });
 
-  it('play again returns everyone to the lobby with fresh scores', () => {
+  it('shows the final for 20 seconds, then returns everyone to the lobby with fresh scores', () => {
     const onEvent = vi.fn();
     const g = started({ onEvent });
     for (let r = 0; r < 3; r++) {
       playRound(g);
       vi.advanceTimersByTime(6000);
     }
-    expect(g.playAgain('m').ok).toBe(false);
-    expect(g.playAgain('h')).toEqual({ ok: true });
+    expect(g.publicState().phase).toBe('final');
+    expect(g.publicState().deadline - Date.now()).toBe(20000);
+    vi.advanceTimersByTime(20000);
     const s = g.publicState();
     expect(s.phase).toBe('lobby');
     expect(s.host.id).toBe('h');
