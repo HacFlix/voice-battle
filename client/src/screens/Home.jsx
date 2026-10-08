@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { send } from '../lib/socket.js';
 
-export default function Home({ mode, teamName }) {
+export default function Home({ mode, teamName, teamCount = 0, audienceCount = 0 }) {
   const [name, setName] = useState('');
   const [team, setTeam] = useState('');
   const [error, setError] = useState('');
@@ -36,12 +36,13 @@ export default function Home({ mode, teamName }) {
         )}
         {mode === 'join' && (
           <>
-            <p className="join-title">Join <b>{teamName}</b></p>
+            <p className="join-title"><b>{teamName}</b> is getting ready</p>
+            <p className="muted join-meta">{teamCount} teammate{teamCount === 1 ? '' : 's'} · {audienceCount} in the audience</p>
             <label className="field">Your name
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Priya" maxLength={20} autoFocus />
             </label>
             <div className="row">
-              <button type="button" className="btn primary" disabled={busy} onClick={() => act('join', { role: 'member' })}>Join as Team Member</button>
+              <button type="button" className="btn primary" disabled={busy} onClick={() => act('join', { role: 'member' })}>Join as Teammate</button>
               <button type="button" className="btn" disabled={busy} onClick={() => act('join', { role: 'audience' })}>Join as Audience</button>
             </div>
           </>

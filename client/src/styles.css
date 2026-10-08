@@ -40,6 +40,7 @@ input[type=file] { padding: 8px; }
 .field { display: grid; gap: 6px; text-align: left; font-weight: 800; color: var(--muted); font-size: .9rem; }
 .join-title { margin: 0; font-size: 1.2rem; }
 .join-title b { color: var(--yellow); }
+.join-meta { margin: -6px 0 0; }
 .pill.team { color: var(--yellow); }
 
 /* lobby */

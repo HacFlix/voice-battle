@@ -34,7 +34,7 @@ export default function App() {
   const me = findMe(state);
   let screen;
   if (state.phase === 'none') screen = <Home mode="create" />;
-  else if (!me) screen = <Home mode={state.phase === 'lobby' ? 'join' : 'busy'} teamName={state.teamName} />;
+  else if (!me) screen = <Home mode={state.phase === 'lobby' ? 'join' : 'busy'} teamName={state.teamName} teamCount={state.members.length} audienceCount={state.audience.length} />;
   else {
     const Screen = SCREENS[state.phase];
     screen = <Screen state={state} me={me} offset={offset} />;
