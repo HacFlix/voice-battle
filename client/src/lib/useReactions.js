@@ -6,9 +6,9 @@ export function useReactions() {
   const [floaters, setFloaters] = useState([]);
   const [hype, setHype] = useState(0);
   useEffect(() => {
-    const onReaction = ({ emoji, from }) => {
+    const onReaction = ({ emoji }) => {
       const id = `${Date.now()}-${Math.random()}`;
-      setFloaters(f => [...f.slice(-30), { id, emoji, from, x: 8 + Math.random() * 84 }]);
+      setFloaters(f => [...f.slice(-30), { id, emoji, x: 8 + Math.random() * 84 }]);
       setHype(Date.now());
       sfx[emoji]?.();
       setTimeout(() => setFloaters(f => f.filter(x => x.id !== id)), 2200);

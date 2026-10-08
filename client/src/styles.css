@@ -139,7 +139,6 @@ button.pill { color: var(--text); font-family: inherit; cursor: pointer; }
 
 .floaters { position: absolute; inset: 0; pointer-events: none; z-index: 35; overflow: hidden; }
 .floater { position: absolute; bottom: 12%; font-size: clamp(1.8rem, 5vw, 3rem); animation: float 2.2s ease-out forwards; display: flex; flex-direction: column; align-items: center; }
-.floater small { font-size: .7rem; font-weight: 800; background: rgba(0, 0, 0, .5); padding: 0 6px; border-radius: 6px; }
 @keyframes float { to { transform: translateY(-55vh) rotate(12deg); opacity: 0; } }
 
 .vote-panel { text-align: center; }

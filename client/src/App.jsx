@@ -69,7 +69,7 @@ export default function App() {
       {screen}
       <div className="floaters">
         {floaters.map(f => (
-          <span key={f.id} className="floater" style={{ left: `${f.x}%` }}>{f.emoji}<small>{f.from}</small></span>
+          <span key={f.id} className="floater" style={{ left: `${f.x}%` }}>{f.emoji}</span>
         ))}
       </div>
     </div>
