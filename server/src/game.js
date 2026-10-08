@@ -1,0 +1,416 @@
+import { computeAwards } from './awards.js';
+
+export const DEFAULT_CONFIG = {
+  maxMembers: 6,
+  minMembers: 2,
+  minAudience: 1,
+  recordSeconds: 60,
+  maxTakes: 3,
+  maxRecordingSeconds: 15,
+  voteSeconds: 10,
+  walkSeconds: 1.5,
+  revealSeconds: 3,
+  leaderboardSeconds: 6,
+  padSeconds: 0.5,
+  timeScale: 1,
+};
+
+export const EMOJIS = ['👏', '😂', '🔥', '🍅'];
+export const STEPS = ['original', 'walkIn', 'perform', 'vote', 'reveal', 'walkOut'];
+
+const ok = () => ({ ok: true });
+const fail = error => ({ ok: false, error });
+
+function cleanName(raw) {
+  const name = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  return name.length >= 1 && name.length <= 20 ? name : null;
+}
+
+function shuffle(list, rng) {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export class Game {
+  constructor({ clips = [], config = {}, rng = Math.random, onChange = () => {}, onEvent = () => {} } = {}) {
+    this.baseClips = clips;
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.rng = rng;
+    this.onChange = onChange;
+    this.onEvent = onEvent;
+    this.timer = null;
+    this.reset(false);
+  }
+
+  reset(notify = true) {
+    clearTimeout(this.timer);
+    this.timer = null;
+    this.phase = 'none';
+    this.players = [];
+    this.hostId = null;
+    this.rounds = 3;
+    this.round = 0;
+    this.deadline = null;
+    this.show = null;
+    this.awards = null;
+    this.extraClips = [];
+    if (notify) {
+      this.onEvent('reset');
+      this.onChange();
+    }
+  }
+
+  get clips() {
+    return [...this.baseClips, ...this.extraClips];
+  }
+
+  player(id) {
+    return this.players.find(p => p.id === id);
+  }
+
+  members() {
+    return this.players.filter(p => p.role === 'member');
+  }
+
+  audience() {
+    return this.players.filter(p => p.role === 'audience');
+  }
+
+  connectedMembers() {
+    return this.members().filter(p => p.connected);
+  }
+
+  isHost(id) {
+    return id === this.hostId;
+  }
+
+  changed() {
+    this.onChange();
+    return ok();
+  }
+
+  later(seconds, fn) {
+    clearTimeout(this.timer);
+    const ms = Math.round(seconds * this.config.timeScale * 1000);
+    this.deadline = Date.now() + ms;
+    this.timer = setTimeout(fn, ms);
+  }
+
+  addPlayer(id, name, role) {
+    let character = null;
+    if (role === 'member') {
+      const used = new Set(this.members().map(m => m.character));
+      character = 0;
+      while (used.has(character)) character++;
+    }
+    const p = { id, name, role, connected: true, character, scores: [], reactions: 0, clip: null, recording: null };
+    this.players.push(p);
+    return p;
+  }
+
+  rekey(p, newId) {
+    if (this.hostId === p.id) this.hostId = newId;
+    if (this.show) {
+      this.show.order = this.show.order.map(id => (id === p.id ? newId : id));
+      if (p.id in this.show.votes) {
+        this.show.votes[newId] = this.show.votes[p.id];
+        delete this.show.votes[p.id];
+      }
+    }
+    p.id = newId;
+  }
+
+  createTeam(id, rawName) {
+    if (this.phase !== 'none') return fail('A game already exists');
+    const name = cleanName(rawName);
+    if (!name) return fail('Enter a name (1-20 characters)');
+    this.addPlayer(id, name, 'member');
+    this.hostId = id;
+    this.phase = 'lobby';
+    return this.changed();
+  }
+
+  join(id, rawName, role) {
+    const existing = this.player(id);
+    if (existing) {
+      existing.connected = true;
+      return this.changed();
+    }
+    if (this.phase === 'none') return fail('No team has been created yet');
+    const name = cleanName(rawName);
+    if (!name) return fail('Enter a name (1-20 characters)');
+    const same = this.players.find(p => p.name.toLowerCase() === name.toLowerCase());
+    if (same) {
+      if (same.connected) return fail('That name is taken');
+      this.rekey(same, id);
+      same.connected = true;
+      return this.changed();
+    }
+    if (this.phase !== 'lobby') return fail('Game already started');
+    if (role !== 'member' && role !== 'audience') return fail('Choose team member or audience');
+    if (role === 'member' && this.members().length >= this.config.maxMembers) return fail('Team is full');
+    this.addPlayer(id, name, role);
+    return this.changed();
+  }
+
+  reconnect(id) {
+    const p = this.player(id);
+    if (p && !p.connected) {
+      p.connected = true;
+      this.changed();
+    }
+  }
+
+  disconnect(id) {
+    const p = this.player(id);
+    if (!p || !p.connected) return;
+    p.connected = false;
+    const remaining = this.connectedMembers();
+    if (remaining.length === 0) {
+      this.reset();
+      return;
+    }
+    if (this.isHost(id)) this.hostId = remaining[0].id;
+    if (this.phase === 'record' && this.allSubmitted()) {
+      this.beginShow();
+      return;
+    }
+    this.changed();
+  }
+
+  setRounds(id, n) {
+    if (!this.isHost(id) || this.phase !== 'lobby') return fail('Only the host can change rounds');
+    if (n !== 3 && n !== 4) return fail('Rounds must be 3 or 4');
+    this.rounds = n;
+    return this.changed();
+  }
+
+  addClip(id, clip) {
+    if (!this.isHost(id) || this.phase !== 'lobby') return fail('Only the host can add clips in the lobby');
+    this.extraClips.push(clip);
+    return this.changed();
+  }
+
+  startProblem() {
+    const c = this.config;
+    if (this.connectedMembers().length < c.minMembers) return `Need at least ${c.minMembers} team members`;
+    if (this.audience().filter(p => p.connected).length < c.minAudience) return `Need at least ${c.minAudience} audience member`;
+    if (this.clips.length === 0) return 'No clips available';
+    return null;
+  }
+
+  start(id) {
+    if (!this.isHost(id)) return fail('Only the host can start');
+    if (this.phase !== 'lobby') return fail('Game already started');
+    const problem = this.startProblem();
+    if (problem) return fail(problem);
+    this.players = this.players.filter(p => p.connected);
+    for (const m of this.members()) {
+      m.scores = [];
+      m.reactions = 0;
+    }
+    this.round = 0;
+    this.awards = null;
+    this.startRound();
+    return ok();
+  }
+
+  startRound() {
+    this.round += 1;
+    this.phase = 'record';
+    this.show = null;
+    const pool = shuffle(this.clips, this.rng);
+    for (const m of this.members()) {
+      m.clip = null;
+      m.recording = null;
+    }
+    this.connectedMembers().forEach((m, i) => {
+      m.clip = pool[i % pool.length];
+    });
+    this.later(this.config.recordSeconds, () => this.beginShow());
+    this.changed();
+  }
+
+  allSubmitted() {
+    return this.connectedMembers().filter(m => m.clip).every(m => m.recording);
+  }
+
+  submitRecording(id, { url, duration }) {
+    const p = this.player(id);
+    if (this.phase !== 'record') return fail('Not recording right now');
+    if (!p || p.role !== 'member' || !p.clip) return fail('You have no clip this round');
+    if (p.recording) return fail('Already submitted');
+    const max = this.config.maxRecordingSeconds;
+    const d = Number(duration);
+    p.recording = { url, duration: Math.min(max, Math.max(0.5, Number.isFinite(d) ? d : max)) };
+    if (this.allSubmitted()) {
+      this.beginShow();
+      return ok();
+    }
+    return this.changed();
+  }
+
+  beginShow() {
+    const order = this.members().filter(m => m.recording).map(m => m.id);
+    this.phase = 'show';
+    this.show = { order, index: -1, step: null, votes: {}, score: null };
+    this.nextPerformer();
+  }
+
+  performer() {
+    return this.show ? this.player(this.show.order[this.show.index]) : null;
+  }
+
+  nextPerformer() {
+    const s = this.show;
+    do {
+      s.index += 1;
+    } while (s.index < s.order.length && !this.player(s.order[s.index])?.connected);
+    if (s.index >= s.order.length) {
+      this.endRound();
+      return;
+    }
+    s.votes = {};
+    s.score = null;
+    this.runStep('original');
+  }
+
+  stepSeconds(step, p) {
+    const c = this.config;
+    switch (step) {
+      case 'original': return p.clip.duration + c.padSeconds;
+      case 'walkIn':
+      case 'walkOut': return c.walkSeconds;
+      case 'perform': return p.recording.duration + c.padSeconds;
+      case 'vote': return c.voteSeconds;
+      case 'reveal': return c.revealSeconds;
+      default: throw new Error(`Unknown step ${step}`);
+    }
+  }
+
+  runStep(step) {
+    const p = this.performer();
+    this.show.step = step;
+    if (step === 'reveal') {
+      const values = Object.values(this.show.votes);
+      const score = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
+      this.show.score = score;
+      p.scores[this.round - 1] = score;
+    }
+    const next = STEPS[STEPS.indexOf(step) + 1];
+    this.later(this.stepSeconds(step, p), () => (next ? this.runStep(next) : this.nextPerformer()));
+    this.changed();
+  }
+
+  vote(id, value) {
+    const p = this.player(id);
+    if (!p || p.role !== 'audience') return fail('Only the audience can vote');
+    if (this.phase !== 'show' || this.show.step !== 'vote') return fail('Voting is closed');
+    const v = typeof value === 'number' ? value : Number.NaN;
+    if (!Number.isFinite(v) || v < 0 || v > 100) return fail('Vote must be 0-100');
+    this.show.votes[id] = Math.round(v);
+    return this.changed();
+  }
+
+  react(id, emoji) {
+    const p = this.player(id);
+    if (!p || p.role !== 'audience') return fail('Only the audience can react');
+    if (this.phase !== 'show' || this.show.step !== 'vote') return fail('Reactions are closed');
+    if (!EMOJIS.includes(emoji)) return fail('Unknown reaction');
+    this.performer().reactions += 1;
+    this.onEvent('reaction', { emoji, from: p.name });
+    return ok();
+  }
+
+  endRound() {
+    for (const m of this.members()) {
+      if (m.scores[this.round - 1] === undefined) m.scores[this.round - 1] = 0;
+    }
+    this.phase = 'leaderboard';
+    this.show = null;
+    this.later(this.config.leaderboardSeconds, () => (this.round < this.rounds ? this.startRound() : this.finish()));
+    this.changed();
+  }
+
+  finish() {
+    clearTimeout(this.timer);
+    this.timer = null;
+    this.deadline = null;
+    this.phase = 'final';
+    this.awards = computeAwards(this.members());
+    this.changed();
+  }
+
+  playAgain(id) {
+    if (!this.isHost(id) || this.phase !== 'final') return fail('Only the host can restart after the final');
+    this.players = this.players.filter(p => p.connected);
+    for (const m of this.members()) {
+      m.scores = [];
+      m.reactions = 0;
+      m.clip = null;
+      m.recording = null;
+    }
+    this.round = 0;
+    this.awards = null;
+    this.deadline = null;
+    this.phase = 'lobby';
+    this.onEvent('clearRecordings');
+    return this.changed();
+  }
+
+  end(id) {
+    if (!this.isHost(id)) return fail('Only the host can end the game');
+    this.reset();
+    return ok();
+  }
+
+  publicState() {
+    const c = this.config;
+    const s = this.show;
+    const p = this.performer();
+    const total = m => m.scores.reduce((a, b) => a + (b || 0), 0);
+    return {
+      phase: this.phase,
+      hostId: this.hostId,
+      rounds: this.rounds,
+      round: this.round,
+      deadline: this.deadline,
+      now: Date.now(),
+      clipCount: this.clips.length,
+      startProblem: this.phase === 'lobby' ? this.startProblem() : null,
+      config: {
+        maxMembers: c.maxMembers,
+        maxTakes: c.maxTakes,
+        maxRecordingSeconds: c.maxRecordingSeconds,
+        walkSeconds: c.walkSeconds * c.timeScale,
+      },
+      members: this.members().map(m => ({
+        id: m.id,
+        name: m.name,
+        connected: m.connected,
+        character: m.character,
+        scores: [...m.scores],
+        total: total(m),
+        reactions: m.reactions,
+        clip: m.clip,
+        submitted: Boolean(m.recording),
+      })),
+      audience: this.audience().filter(a => a.connected).map(a => ({ id: a.id, name: a.name })),
+      show: s && p ? {
+        performerId: p.id,
+        step: s.step,
+        clip: p.clip,
+        recordingUrl: p.recording.url,
+        score: s.step === 'reveal' || s.step === 'walkOut' ? s.score : null,
+        votes: Object.keys(s.votes).length,
+        index: s.index,
+        count: s.order.length,
+      } : null,
+      awards: this.awards,
+    };
+  }
+}
