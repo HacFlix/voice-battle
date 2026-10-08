@@ -41,7 +41,7 @@ function useReactions() {
 function Caption({ show, performer, left }) {
   const name = performer?.name ?? '';
   const texts = {
-    original: <>🎬 Original: <b>“{show.clip.title}”</b></>,
+    original: <>🎬 The original: <b>“{show.clip.title}”</b></>,
     walkIn: <>Up next: <b>{name}</b></>,
     perform: <>🎤 <b>{name}</b> is performing…</>,
     vote: <>🗳️ Vote now! <b>{left}s</b> · {show.votes} vote{show.votes === 1 ? '' : 's'}</>,

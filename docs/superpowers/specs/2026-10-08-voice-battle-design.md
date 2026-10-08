@@ -26,7 +26,8 @@ the same stage moment.
 - Only one game exists at a time. While a team exists, nobody can create another.
 - Team: 2–6 members (host included). Audience: at least 1, unlimited.
 - Rounds: 3 or 4 (host chooses). All rounds use the same rules.
-- Each round every member gets a different random clip.
+- Each round uses one clip shared by every member (each does their own take on it);
+  no clip repeats until the pack runs out.
 - Recording: 60 s timer, up to 3 takes, submit one. No submission → 0 for that
   round and skipped on stage.
 - Voting: 10 s window per performance, 0–100 slider. Score = average of votes
@@ -45,8 +46,8 @@ the same stage moment.
 3. **Record** — members see their clip, can replay the original, record up to
    3 takes, submit. Audience sees a waiting screen with progress.
 4. **Stage show** — for each member in order:
-   1. Original clip plays (title shown).
-   2. The member's character walks to the mic; their recording auto-plays.
+   0. Once per round, before the first performer: the original clip plays (title shown).
+   1. The member's character walks to the mic; their recording auto-plays.
    3. Voting opens for 10 s (audience phones show slider + emoji buttons).
       Reactions float across all screens with sounds.
    4. Score is revealed (cheer if ≥70, groan if <40). Character walks back.

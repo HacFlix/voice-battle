@@ -55,6 +55,8 @@ export class Game {
     this.hostId = null;
     this.rounds = 3;
     this.round = 0;
+    this.roundClip = null;
+    this.clipQueue = [];
     this.deadline = null;
     this.show = null;
     this.awards = null;
@@ -217,6 +219,7 @@ export class Game {
     }
     this.round = 0;
     this.awards = null;
+    this.clipQueue = shuffle(this.clips, this.rng);
     this.startRound();
     return ok();
   }
@@ -225,14 +228,12 @@ export class Game {
     this.round += 1;
     this.phase = 'record';
     this.show = null;
-    const pool = shuffle(this.clips, this.rng);
+    // One clip per round, shared by every member; no repeats until the pack runs out.
+    this.roundClip = this.clipQueue[(this.round - 1) % this.clipQueue.length];
     for (const m of this.members()) {
-      m.clip = null;
+      m.clip = m.connected ? this.roundClip : null;
       m.recording = null;
     }
-    this.connectedMembers().forEach((m, i) => {
-      m.clip = pool[i % pool.length];
-    });
     this.later(this.config.recordSeconds, () => this.beginShow());
     this.changed();
   }
@@ -259,7 +260,7 @@ export class Game {
   beginShow() {
     const order = this.members().filter(m => m.recording).map(m => m.id);
     this.phase = 'show';
-    this.show = { order, index: -1, step: null, votes: {}, score: null };
+    this.show = { order, index: -1, step: null, votes: {}, score: null, originalPlayed: false };
     this.nextPerformer();
   }
 
@@ -278,7 +279,8 @@ export class Game {
     }
     s.votes = {};
     s.score = null;
-    this.runStep('original');
+    // The original plays once, before the first performer.
+    this.runStep(s.originalPlayed ? 'walkIn' : 'original');
   }
 
   stepSeconds(step, p) {
@@ -297,6 +299,7 @@ export class Game {
   runStep(step) {
     const p = this.performer();
     this.show.step = step;
+    if (step === 'original') this.show.originalPlayed = true;
     if (step === 'reveal') {
       const values = Object.values(this.show.votes);
       const score = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
@@ -357,6 +360,7 @@ export class Game {
       m.recording = null;
     }
     this.round = 0;
+    this.roundClip = null;
     this.awards = null;
     this.deadline = null;
     this.phase = 'lobby';
@@ -381,6 +385,7 @@ export class Game {
       hostId: this.hostId,
       rounds: this.rounds,
       round: this.round,
+      roundClip: this.roundClip,
       deadline: this.deadline,
       now: Date.now(),
       clipCount: this.clips.length,

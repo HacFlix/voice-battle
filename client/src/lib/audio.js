@@ -7,10 +7,33 @@ export function audioCtx() {
   return ctx;
 }
 
+// Per-tab/device sound switch: in one room only one device needs to play the show,
+// otherwise every phone plays it a few ms apart and it sounds like an echo.
+let soundOn = sessionStorage.getItem('vb-sound') !== 'off';
+const soundListeners = new Set();
+
+export function setSoundOn(on) {
+  soundOn = on;
+  sessionStorage.setItem('vb-sound', on ? 'on' : 'off');
+  if (current) current.muted = !on;
+  soundListeners.forEach(fn => fn(on));
+}
+
+export function useSoundOn() {
+  const [value, setValue] = useState(soundOn);
+  useEffect(() => {
+    soundListeners.add(setValue);
+    return () => soundListeners.delete(setValue);
+  }, []);
+  return value;
+}
+
 let current = null;
-export function playUrl(url) {
+// Personal previews (your clip, your takes) pass ignoreMute: the switch only mutes the shared show.
+export function playUrl(url, { ignoreMute = false } = {}) {
   stopPlayback();
   current = new Audio(url);
+  current.muted = !soundOn && !ignoreMute;
   current.play().catch(() => {});
   return current;
 }
@@ -60,6 +83,7 @@ function tone(c, at, { type = 'sine', from, to = from, dur, peak = 0.25 }) {
 }
 
 const withCtx = fn => () => {
+  if (!soundOn) return;
   const c = audioCtx();
   fn(c, c.currentTime);
 };

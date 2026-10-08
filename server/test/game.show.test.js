@@ -18,15 +18,16 @@ describe('stage show', () => {
       if (seen.at(-1) !== key) seen.push(key);
       vi.advanceTimersByTime(100);
     }
-    const steps = ['original', 'walkIn', 'perform', 'vote', 'reveal', 'walkOut'];
-    expect(seen).toEqual([...steps.map(s => `h:${s}`), ...steps.map(s => `m:${s}`)]);
+    const steps = ['walkIn', 'perform', 'vote', 'reveal', 'walkOut'];
+    expect(seen).toEqual(['h:original', ...steps.map(s => `h:${s}`), ...steps.map(s => `m:${s}`)]);
     expect(g.phase).toBe('leaderboard');
   });
 
-  it('plays the original for the clip length plus padding', () => {
+  it('plays the original once, for the clip length plus padding', () => {
     const g = started();
     submitAll(g);
-    const clip = g.player('h').clip;
+    const clip = g.publicState().roundClip;
+    expect(g.publicState().show.step).toBe('original');
     expect(g.deadline - Date.now()).toBe((clip.duration + 0.5) * 1000);
   });
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { upload } from '../lib/api.js';
-import { playUrl } from '../lib/audio.js';
+import { playUrl, stopPlayback } from '../lib/audio.js';
 import { useRecorder } from '../lib/recorder.js';
 import { playerId } from '../lib/socket.js';
 import { useSecondsLeft } from '../lib/time.js';
@@ -53,6 +53,7 @@ function Recorder({ clip, maxTakes, maxSeconds }) {
 
   async function record() {
     setError('');
+    stopPlayback(); // keep the original out of the mic
     try {
       const take = await start();
       setTakes(t => [...t, take]);
@@ -71,18 +72,18 @@ function Recorder({ clip, maxTakes, maxSeconds }) {
   const outOfTakes = takes.length >= maxTakes;
   return (
     <div className="card recorder">
-      <p className="label">Your clip</p>
+      <p className="label">This round's clip — everyone does the same one</p>
       <h2 className="clip-title">“{clip.title}”</h2>
-      <button className="btn" onClick={() => playUrl(clip.url)}>▶ Play original</button>
+      <button className="btn" disabled={recording} onClick={() => playUrl(clip.url, { ignoreMute: true })}>▶ Play original</button>
       {recording
         ? <button className="btn rec on" onClick={stop}>■ Stop</button>
         : <button className="btn rec" disabled={outOfTakes} onClick={record}>● {outOfTakes ? 'No takes left' : `Record take ${takes.length + 1}/${maxTakes}`}</button>}
-      <p className="muted">Up to {maxSeconds}s per take. Pick your best one and submit it.</p>
+      <p className="muted">Up to {maxSeconds}s per take. Headphones help keep the original out of your recording.</p>
       <ul className="takes">
         {takes.map((take, i) => (
           <li key={take.url}>
             <span>Take {i + 1} · {take.duration.toFixed(1)}s</span>
-            <button className="btn small" onClick={() => playUrl(take.url)}>▶</button>
+            <button className="btn small" onClick={() => playUrl(take.url, { ignoreMute: true })}>▶</button>
             <button className="btn small primary" disabled={sending} onClick={() => submit(take)}>Submit</button>
           </li>
         ))}

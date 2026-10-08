@@ -42,6 +42,7 @@ input[type=file] { padding: 8px; }
 .join-title b { color: var(--yellow); }
 .join-meta { margin: -6px 0 0; }
 .pill.team { color: var(--yellow); }
+button.pill { color: var(--text); font-family: inherit; cursor: pointer; }
 
 /* lobby */
 .lobby { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }

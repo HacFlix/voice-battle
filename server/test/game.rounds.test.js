@@ -1,18 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { lobby, started } from './helpers.js';
+import { lobby, started, runUntil } from './helpers.js';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
 describe('recording phase', () => {
-  it('starts round 1 with a different clip for each member', () => {
+  it('starts round 1 with the same clip for every member', () => {
     const g = started();
     const s = g.publicState();
     expect(s.phase).toBe('record');
     expect(s.round).toBe(1);
-    const ids = s.members.map(m => m.clip.id);
-    expect(new Set(ids).size).toBe(2);
+    expect(s.roundClip).toBeTruthy();
+    expect(s.members.map(m => m.clip.id)).toEqual([s.roundClip.id, s.roundClip.id]);
     expect(s.deadline - Date.now()).toBe(60000);
+  });
+
+  it('uses a different clip every round', () => {
+    const g = started();
+    const seen = [g.publicState().roundClip.id];
+    for (let r = 2; r <= 3; r++) {
+      vi.advanceTimersByTime(60000);
+      runUntil(g, x => x.phase === 'record' && x.round === r);
+      seen.push(g.publicState().roundClip.id);
+    }
+    expect(new Set(seen).size).toBe(3);
   });
 
   it('drops players who left the lobby before the start', () => {
