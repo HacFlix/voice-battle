@@ -49,6 +49,14 @@ describe('recording phase', () => {
     expect(g.submitRecording('a', { url: '/u/a.webm', duration: 2 })).toEqual({ ok: false, error: 'You have no clip this round' });
   });
 
+  it('shares each recording URL as soon as it is submitted, so devices can preload it', () => {
+    const g = started();
+    const mia = () => g.publicState().members.find(m => m.id === 'm');
+    expect(mia().recordingUrl).toBeNull();
+    g.submitRecording('m', { url: '/u/m.webm', duration: 2 });
+    expect(mia().recordingUrl).toBe('/u/m.webm');
+  });
+
   it('clamps the recording duration', () => {
     const g = started();
     g.submitRecording('m', { url: '/u/m.webm', duration: 99 });

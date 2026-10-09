@@ -430,6 +430,7 @@ export class Game {
         reactions: m.reactions,
         clip: m.clip,
         submitted: Boolean(m.recording),
+        recordingUrl: m.recording?.url ?? null,
         recordingNow: m.recordingNow,
       })),
       audience: this.audience().filter(a => a.connected).map(a => ({ id: a.id, name: a.name })),

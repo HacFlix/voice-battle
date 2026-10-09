@@ -1,5 +1,6 @@
 import Header from './components/Header.jsx';
 import { useAudioUnlock } from './lib/audio.js';
+import { useAudioPreload } from './lib/audioCache.js';
 import { playerId } from './lib/socket.js';
 import { useGame } from './lib/useGame.js';
 import { useReactions } from './lib/useReactions.js';
@@ -35,6 +36,7 @@ export default function App() {
   const { state, offset } = useGame();
   const { floaters, hype } = useReactions();
   useAudioUnlock();
+  useAudioPreload(state);
 
   let me = null;
   let screen;

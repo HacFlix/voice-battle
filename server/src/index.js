@@ -106,8 +106,9 @@ app.post('/api/clip', withUpload(CUSTOM_DIR, async req => {
   });
 }));
 
-app.use('/clips', express.static(CLIPS_DIR));
-app.use('/uploads', express.static(UPLOADS_DIR));
+// Audio filenames never change content (uploads get unique names), so let browsers keep them.
+app.use('/clips', express.static(CLIPS_DIR, { maxAge: '1d' }));
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '1y', immutable: true }));
 if (fs.existsSync(CLIENT_DIST)) app.use(express.static(CLIENT_DIST));
 
 const pendingDisconnects = new Map();

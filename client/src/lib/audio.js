@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { apiUrl } from './apiBase.js';
+import { resolveAudio } from './audioCache.js';
 
 let ctx = null;
 export function audioCtx() {
@@ -33,7 +33,7 @@ let current = null;
 // Personal previews (your clip, your takes) pass ignoreMute: the switch only mutes the shared show.
 export function playUrl(url, { ignoreMute = false } = {}) {
   stopPlayback();
-  current = new Audio(apiUrl(url));
+  current = new Audio(resolveAudio(url));
   current.muted = !soundOn && !ignoreMute;
   current.play().catch(() => {});
   return current;
