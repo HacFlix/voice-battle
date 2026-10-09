@@ -28,7 +28,8 @@ the same stage moment.
 - Team: 2–6 members (host not included). Audience: at least 1, unlimited.
 - Rounds: 3 or 4 (host chooses). All rounds use the same rules.
 - Each round uses one clip shared by every member (each does their own take on it);
-  no clip repeats until the pack runs out.
+  clips are picked at random and none repeats, even across games, until the
+  whole pack has been played.
 - Recording: 60 s timer, up to 3 takes, submit one. No submission → 0 for that
   round and skipped on stage.
 - Voting: 10 s window per performance, 0–100 slider. Score = average of votes
@@ -93,7 +94,7 @@ client (React + Vite)                      server (Node + Express + Socket.IO)
   when the server's stage step says so.
 - **Browser autoplay:** each client must click once ("Enter the stage") before
   the show so audio can play automatically.
-- **Clip pack:** ~15–20 short Bollywood + English meme clips in
+- **Clip pack:** 100 short (≤6 s) meme clips, 50 Bollywood + 50 English, in
   `server/clips/` with a `clips.json` manifest (title, file). Personal/private
   use only — copyrighted clips must be replaced before any public release.
 - **Assets:** Kenney.nl (CC0) characters/stage art; sound effects CC0.

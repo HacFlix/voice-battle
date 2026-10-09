@@ -27,15 +27,6 @@ function cleanName(raw, max = 20) {
   return name.length >= 1 && name.length <= max ? name : null;
 }
 
-function shuffle(list, rng) {
-  const a = [...list];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 export class Game {
   constructor({ clips = [], config = {}, rng = Math.random, onChange = () => {}, onEvent = () => {} } = {}) {
     this.baseClips = clips;
@@ -44,6 +35,8 @@ export class Game {
     this.onChange = onChange;
     this.onEvent = onEvent;
     this.timer = null;
+    // Clips already used, kept across games so nothing repeats until the whole pack has played.
+    this.playedClipIds = new Set();
     this.reset(false);
   }
 
@@ -57,7 +50,6 @@ export class Game {
     this.rounds = 3;
     this.round = 0;
     this.roundClip = null;
-    this.clipQueue = [];
     this.deadline = null;
     this.show = null;
     this.awards = null;
@@ -230,7 +222,6 @@ export class Game {
     }
     this.round = 0;
     this.awards = null;
-    this.clipQueue = shuffle(this.clips, this.rng);
     this.startRound();
     return ok();
   }
@@ -239,8 +230,8 @@ export class Game {
     this.round += 1;
     this.phase = 'record';
     this.show = null;
-    // One clip per round, shared by every member; no repeats until the pack runs out.
-    this.roundClip = this.clipQueue[(this.round - 1) % this.clipQueue.length];
+    // One clip per round, shared by every member.
+    this.roundClip = this.nextClip();
     for (const m of this.members()) {
       m.clip = m.connected ? this.roundClip : null;
       m.recording = null;
@@ -248,6 +239,19 @@ export class Game {
     }
     this.later(this.config.recordSeconds, () => this.beginShow());
     this.changed();
+  }
+
+  // A random clip nobody has played yet; once the whole pack is used, start a new cycle.
+  nextClip() {
+    let fresh = this.clips.filter(c => !this.playedClipIds.has(c.id));
+    if (fresh.length === 0) {
+      this.playedClipIds.clear();
+      fresh = this.clips.filter(c => c.id !== this.roundClip?.id);
+      if (fresh.length === 0) fresh = this.clips;
+    }
+    const clip = fresh[Math.floor(this.rng() * fresh.length)];
+    this.playedClipIds.add(clip.id);
+    return clip;
   }
 
   setRecording(id, on) {

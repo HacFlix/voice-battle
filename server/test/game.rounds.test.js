@@ -26,6 +26,43 @@ describe('recording phase', () => {
     expect(new Set(seen).size).toBe(3);
   });
 
+  it('plays every clip before repeating one, even across games', () => {
+    const clips = Array.from({ length: 5 }, (_, i) => ({ id: `k${i}`, title: `K${i}`, url: `/clips/k${i}.mp3`, duration: 2 }));
+    const g = lobby({ clips });
+    const seen = [];
+    for (let game = 0; game < 2; game++) {
+      g.start('h');
+      g.phase = 'final';
+      seen.push(g.publicState().roundClip.id);
+      // Only round 1 matters per game here; jump back to the lobby for the next game.
+      g.backToLobby();
+    }
+    g.setRounds('h', 3);
+    g.start('h');
+    seen.push(g.publicState().roundClip.id);
+    for (let r = 2; r <= 3; r++) {
+      vi.advanceTimersByTime(60000);
+      runUntil(g, x => x.phase === 'record' && x.round === r);
+      seen.push(g.publicState().roundClip.id);
+    }
+    expect(new Set(seen).size).toBe(5);
+  });
+
+  it('starts a fresh cycle once every clip has been played', () => {
+    const g = lobby();
+    const seen = [];
+    for (let game = 0; game < 2; game++) {
+      g.start('h');
+      for (let r = 2; r <= 3; r++) {
+        vi.advanceTimersByTime(60000);
+        runUntil(g, x => x.phase === 'record' && x.round === r);
+      }
+      seen.push(g.playedClipIds.size);
+      g.backToLobby();
+    }
+    expect(seen).toEqual([3, 3]);
+  });
+
   it('drops players who left the lobby before the start', () => {
     const g = lobby();
     g.join('x', 'Ghost', 'member');
