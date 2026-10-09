@@ -241,13 +241,20 @@ export class Game {
     this.changed();
   }
 
-  // A random clip nobody has played yet; once the whole pack is used, start a new cycle.
+  // Rounds alternate Hindi and English (round 1's language is random each game).
+  // Within a language, pick a random clip nobody has played yet; once that language's
+  // clips are all used, start a new cycle for it. Clips without a language (uploads) fit either.
   nextClip() {
-    let fresh = this.clips.filter(c => !this.playedClipIds.has(c.id));
+    const langs = ['hi', 'en'];
+    if (this.round === 1) this.firstLang = langs[Math.floor(this.rng() * langs.length)];
+    const lang = this.round % 2 === 1 ? this.firstLang : langs.find(l => l !== this.firstLang);
+    let pool = this.clips.filter(c => !c.lang || c.lang === lang);
+    if (pool.length === 0) pool = this.clips;
+    let fresh = pool.filter(c => !this.playedClipIds.has(c.id));
     if (fresh.length === 0) {
-      this.playedClipIds.clear();
-      fresh = this.clips.filter(c => c.id !== this.roundClip?.id);
-      if (fresh.length === 0) fresh = this.clips;
+      for (const c of pool) this.playedClipIds.delete(c.id);
+      fresh = pool.filter(c => c.id !== this.roundClip?.id);
+      if (fresh.length === 0) fresh = pool;
     }
     const clip = fresh[Math.floor(this.rng() * fresh.length)];
     this.playedClipIds.add(clip.id);

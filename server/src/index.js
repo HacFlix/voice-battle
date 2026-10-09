@@ -30,7 +30,7 @@ emptyDir(REC_DIR);
 emptyDir(CUSTOM_DIR);
 
 const clips = JSON.parse(fs.readFileSync(path.join(CLIPS_DIR, 'clips.json'), 'utf8'))
-  .map(c => ({ id: c.id, title: c.title, url: `/clips/${c.file}`, duration: c.duration }));
+  .map(c => ({ id: c.id, title: c.title, lang: c.lang, url: `/clips/${c.file}`, duration: c.duration }));
 
 const app = express();
 app.use((req, res, next) => {

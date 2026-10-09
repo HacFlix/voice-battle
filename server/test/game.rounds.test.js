@@ -48,6 +48,21 @@ describe('recording phase', () => {
     expect(new Set(seen).size).toBe(5);
   });
 
+  it('alternates Hindi and English rounds', () => {
+    const clips = ['hi', 'en'].flatMap(lang =>
+      Array.from({ length: 4 }, (_, i) => ({ id: `${lang}${i}`, title: `${lang}${i}`, url: `/clips/${lang}${i}.mp3`, duration: 2, lang })));
+    const g = lobby({ clips });
+    g.setRounds('h', 4);
+    g.start('h');
+    const langs = [g.publicState().roundClip.lang];
+    for (let r = 2; r <= 4; r++) {
+      vi.advanceTimersByTime(60000);
+      runUntil(g, x => x.phase === 'record' && x.round === r);
+      langs.push(g.publicState().roundClip.lang);
+    }
+    expect([['hi', 'en', 'hi', 'en'], ['en', 'hi', 'en', 'hi']]).toContainEqual(langs);
+  });
+
   it('starts a fresh cycle once every clip has been played', () => {
     const g = lobby();
     const seen = [];
